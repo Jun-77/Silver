@@ -1,59 +1,91 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 
-// Set to 2^n for faster modulo operation
-#define QUEUE_SIZE 1024
-#define QUEUE_MASK 1023
-#define MAX_BALLOON_SIZE 1000
+#define MAX_QUEUE_SIZE 1002
+typedef int element;
+typedef struct DequeType {
+	element data[MAX_QUEUE_SIZE];
+	int front, rear;
+}DequeType;
 
-int queue[QUEUE_SIZE];
-int head = 0;
-int tail = 0;
-int balloon_papers[MAX_BALLOON_SIZE];
+// 큐 초기화 함수
+void init(DequeType* q) {
+	q->front = q->rear = 0;
+}
 
-int main(void)
-{
-    int num_balloons;
-    scanf("%d", &num_balloons);
+// 공백상태 검출 함수
+int is_empty(DequeType* q) {
+	if (q->front == q->rear) return 1;
+	return 0;
+}
 
-    // Initialize 
-    for (int i = 0; i < num_balloons; i++)
-    {
-        queue[i] = i + 1;
-    }
-    tail = num_balloons;
+// 포화상태 검출 함수
+int is_full(DequeType* q) {
+	// front가 처음 인덱스, rear가 마지막 인덱스인 경우 고려
+	if ((q->rear + 1) % MAX_QUEUE_SIZE == q->front) return 1;
+	return 0;
+}
 
-    // Baloon papers have next movement info
-    for (int i = 0; i < num_balloons; i++)
-    {
-        scanf("%d", &balloon_papers[i]);
-    }
+// rear에 데이터 삽입(큐에서는 enqueue와 같음)
+int add_rear(DequeType* q, element item) {
+	if (is_full(q)) return -1;
+	q->rear = (q->rear + 1) % MAX_QUEUE_SIZE;
+	q->data[q->rear] = item;
+	return 0;
+}
 
-    while (1)
-    {
-        // Pop balloon
-        printf("%d ", queue[head]);
-        int movement = balloon_papers[queue[head] - 1];
-        head = (head + 1) & QUEUE_MASK;
-        num_balloons--;
+// front에서 데이터 반환 및 삭제(큐에서는 dequeue와 같음)
+element delete_front(DequeType* q) {
+	if (is_empty(q)) return -1;
+	q->front = (q->front + 1) % MAX_QUEUE_SIZE;
+	return q->data[q->front];
+}
 
-        if (num_balloons == 0)
-        {
-            break;
-        }
+// front에 데이터 삽입
+int add_front(DequeType* q, element item) {
+	if (is_full(q)) return -1;
+	q->data[q->front] = item;
+	q->front = (q->front - 1 + MAX_QUEUE_SIZE) % MAX_QUEUE_SIZE;
+	return 0;
+}
 
-        // Positivie: Movement -1 since the head moved by popping 
-        // Negative: Converted into positive movement
-        movement = (movement > 0) 
-                    ? (movement - 1) % num_balloons 
-                    : num_balloons + (movement % num_balloons);
+//rear에서 데이터 반환 및 삭제
+element delete_rear(DequeType* q) {
+	if (is_empty(q)) return -1;
+	element val = q->data[q->rear];
+	q->rear = (q->rear - 1 + MAX_QUEUE_SIZE) % MAX_QUEUE_SIZE;
+	return val;
+}
 
-        // Rotate right by movement
-        while (movement != 0)
-        {
-            queue[tail] = queue[head];
-            head = (head + 1) & QUEUE_MASK;
-            tail = (tail + 1) & QUEUE_MASK;
-            movement--;
-        }
-    }
+int main() {
+	DequeType q;
+	init(&q);
+	int N;
+	int balloon_num[MAX_QUEUE_SIZE];
+	scanf("%d", &N);
+	for (int i = 0; i < N; i++) {
+		add_rear(&q, i + 1);
+	}
+	for (int i = 0; i < N; i++) {
+		scanf("%d", &balloon_num[i]);
+	}
+
+	for (int i = 0; i < N; i++) {
+		printf("%d ", q.data[q.front + 1]);
+		int val = balloon_num[q.data[q.front + 1] - 1];
+		delete_front(&q);
+
+		if (val < 0) {
+			for (int j = 0; j < -1 * val; j++) {
+				add_front(&q, delete_rear(&q));
+			}
+		}
+
+		else {
+			for (int j = 0; j < val - 1; j++) {
+				add_rear(&q, delete_front(&q));
+			}
+		}
+	}
+	return 0;
 }
